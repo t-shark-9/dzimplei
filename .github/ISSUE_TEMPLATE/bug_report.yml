@@ -1,0 +1,30 @@
+name: Bug report
+description: Something behaves differently than it should
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes: { label: Version, placeholder: "0.0.1" }
+    validations: { required: true }
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did it happen?
+      options: [Desktop app, Self-hosted web, WhatsApp (Jim)]
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect instead?
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. …\n2. …\n3. …"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Scrub tokens, API keys and anything private before pasting.
+      render: shell
