@@ -9,15 +9,34 @@ The source lives in a private repository; nothing here is the code itself.
 
 ## Get started
 
-**Download a build** from [Releases](../../releases). Linux ships an AppImage:
+**macOS (Apple silicon)** — with Homebrew:
+
+```bash
+brew tap t-shark-9/dzimplei https://github.com/t-shark-9/dzimplei
+brew install --cask dzimplei
+```
+
+The app is signed with dzimplei's own certificate rather than an Apple Developer
+ID, so macOS would normally refuse the first launch of a downloaded copy; the
+cask clears that flag on the copy it installs. It updates itself after that.
+
+**Windows** — with [Scoop](https://scoop.sh):
+
+```powershell
+scoop bucket add dzimplei https://github.com/t-shark-9/dzimplei
+scoop install dzimplei
+```
+
+The installer is not code-signed yet, so SmartScreen may ask once.
+
+**Or download a build** from [Releases](../../releases): `dzimplei-mac-arm64.dmg`
+(drag to Applications, then right-click → Open the first time) and
+`dzimplei-windows-x64.exe`. Linux ships an AppImage when one is published:
 
 ```bash
 chmod +x dzimplei-*.AppImage
 ./dzimplei-*.AppImage
 ```
-
-macOS and Windows builds are not published yet — they have to be produced on
-those platforms, and the release notes describe building from a tag instead.
 
 The desktop app keeps everything on your machine and uses the Claude login you
 already have. Self-hosting serves the same app over the web, behind a sign-in.
