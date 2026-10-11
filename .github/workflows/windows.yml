@@ -1,0 +1,62 @@
+# The Windows build, run in the PUBLIC repo t-shark-9/dzimplei so it costs nothing:
+# Actions minutes are unlimited for a public repo, and this source repo is
+# private (every minute billed, Windows at 2x). This file is the copy that
+# lives at t-shark-9/dzimplei/.github/workflows/windows.yml; keep the two equal.
+#
+# It checks out the PRIVATE source with a read-only deploy key (secret
+# SOURCE_DEPLOY_KEY here, the matching public key is a read-only deploy key on
+# dzimplei-source), builds the installer, and uploads it as an artifact for
+# scripts/publish-desktop.sh to collect. A public repo's logs are public: the
+# build prints file names and package versions, never secrets (GitHub masks the
+# key), so keep it that way — no `env`, `set -x` or `cat` of config in here.
+name: windows
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "dzimplei-source commit to build"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  DZ_BASE: /dzimplei/
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: t-shark-9/dzimplei-source
+          ref: ${{ inputs.ref }}
+          ssh-key: ${{ secrets.SOURCE_DEPLOY_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The agent engine ships INSIDE the app (scripts/bundle-engine.mjs); see the
+      # note in the old desktop.yml: the runner's npm prefix is not where it looks.
+      - name: codex engine, at the version the server runs
+        shell: bash
+        run: |
+          npm i -g "@openai/codex@$(tr -d '[:space:]' < scripts/codex-version)"
+          bin=$(ls "$(npm root -g)"/@openai/codex/node_modules/@openai/codex-win32-*/vendor/*/bin/codex.exe | head -1)
+          test -n "$bin" || { echo "::error::codex.exe not found"; exit 1; }
+          echo "CODEX_BIN=$(cygpath -w "$bin")" >> "$GITHUB_ENV"
+      - run: npm run build
+      - run: npm run build:server
+      - run: npx electron-builder --win --publish never
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dzimplei-windows
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
