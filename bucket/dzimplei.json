@@ -6,7 +6,7 @@
     "architecture": {
         "64bit": {
             "url": "https://github.com/t-shark-9/dzimplei/releases/download/v0.7.86/dzimplei-windows-x64.exe#/dzimplei-setup.exe",
-            "hash": "8494e818aaf2b890fed133c9e53fe516208a576fd8dbabbf4be8179e995e8814"
+            "hash": "694188e7019f9b160043728c66881f7ae022df2b8f4588e92efdba9a972b324f"
         }
     },
     "installer": {
