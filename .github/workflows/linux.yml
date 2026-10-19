@@ -1,0 +1,78 @@
+# The Linux build, run in the PUBLIC repo t-shark-9/dzimplei so it costs nothing (see public-windows.yml for why). This file is the copy that
+# lives at t-shark-9/dzimplei/.github/workflows/linux.yml; keep the two equal.
+#
+# Two native builds, not a cross build: the agent engine (codex) is a native binary per architecture and the app ships exactly the one it can run
+# (scripts/after-pack.mjs), so x64 is built on an x64 runner and arm64 on GitHub's arm runner. x64 gives an AppImage and a .deb; arm64 an AppImage
+# (the .deb tool electron-builder bundles has no arm64 build). Each leaves its own update feed (latest-linux.yml, latest-linux-arm64.yml), which
+# scripts/publish-update.sh already knows. A public repo's logs are public: nothing here prints config or secrets.
+name: linux
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "dzimplei-source commit to build"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  DZ_BASE: /dzimplei/
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-latest
+            targets: "AppImage deb"
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            targets: "AppImage"
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: t-shark-9/dzimplei-source
+          ref: ${{ inputs.ref }}
+          ssh-key: ${{ secrets.SOURCE_DEPLOY_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The engine at the version the server runs, as the native binary for THIS runner's architecture.
+      - name: codex engine, at the version the server runs
+        run: |
+          npm i -g "@openai/codex@$(tr -d '[:space:]' < scripts/codex-version)"
+          bin=$(ls "$(npm root -g)"/@openai/codex/node_modules/@openai/codex-linux-*/vendor/*/bin/codex | head -1)
+          test -n "$bin" || { echo "::error::codex not found"; exit 1; }
+          echo "CODEX_BIN=$bin" >> "$GITHUB_ENV"
+      - run: npm run build
+      - run: npm run build:server
+      - run: npx electron-builder --linux ${{ matrix.targets }} --${{ matrix.arch }} --publish never
+      # The package must carry an engine that runs and is the pinned version: an AppImage without one installs, opens and fails on the first turn.
+      - name: the AppImage carries the pinned engine
+        run: |
+          cd release
+          img=$(ls *.AppImage | head -1)
+          chmod +x "$img"
+          "./$img" --appimage-extract >/dev/null
+          eng=$(ls squashfs-root/resources/app*/build/codex squashfs-root/resources/app/build/codex 2>/dev/null | head -1)
+          test -n "$eng" || { echo "::error::no engine inside $img"; exit 1; }
+          "$eng" --version | grep -q " $(tr -d '[:space:]' < ../scripts/codex-version)$" || { echo "::error::engine is not the pinned version"; "$eng" --version; exit 1; }
+          rm -rf squashfs-root
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dzimplei-linux-${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.blockmap
+            release/latest-linux*.yml
