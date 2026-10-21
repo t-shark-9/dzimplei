@@ -1,0 +1,48 @@
+# The OmniRoute fork build, run in the PUBLIC repo t-shark-9/dzimplei so it costs nothing (a public repo's
+# Actions minutes are unlimited; the source repo is private and billed). This file is the copy that lives at
+# t-shark-9/dzimplei/.github/workflows/omniroute.yml; keep the two equal.
+#
+# Why here: omniroute-fork/build.sh needs a Next build that peaks above what a 16 GB Mac has free and that the
+# VPS cannot do at all. The runner has 16 GB and nothing else to run.
+#
+# It checks out the PRIVATE source (the patches are there) with the read-only deploy key SOURCE_DEPLOY_KEY, runs
+# omniroute-fork/build.sh (public upstream at the pinned tag + our patches), and uploads the tarball as an
+# artifact. The tarball is open-source OmniRoute plus our patches: no secret goes in. A public repo's logs and
+# artifacts are public, so this prints file names, versions and a checksum, never `env`, `set -x` or config.
+name: omniroute
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "dzimplei-source commit or branch to build (its omniroute-fork/ is used)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: t-shark-9/dzimplei-source
+          ref: ${{ inputs.ref }}
+          ssh-key: ${{ secrets.SOURCE_DEPLOY_KEY }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: build the fork
+        run: |
+          out="$RUNNER_TEMP/omniroute-dist"
+          NODE_OPTIONS=--max-old-space-size=12288 bash omniroute-fork/build.sh "$out"
+          ls -l "$out"
+          (cd "$out" && sha256sum ./*.tgz)
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dzimplei-omniroute
+          if-no-files-found: error
+          retention-days: 14
+          path: ${{ runner.temp }}/omniroute-dist/*.tgz
