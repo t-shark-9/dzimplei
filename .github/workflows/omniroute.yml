@@ -34,10 +34,24 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+      # The first run (Turbopack, 12 GB heap) was cancelled by the runner after 6.5 minutes of "Creating an
+      # optimized production build": out of memory. So: webpack (OMNIROUTE_USE_TURBOPACK=0, upstream's
+      # documented path for RAM-constrained machines) and 12 GB of swap on the runner's second disk.
+      - name: swap
+        run: |
+          sudo swapoff -a || true
+          sudo fallocate -l 12G /mnt/swapfile
+          sudo chmod 600 /mnt/swapfile
+          sudo mkswap /mnt/swapfile >/dev/null
+          sudo swapon /mnt/swapfile
+          free -g | head -3
       - name: build the fork
+        env:
+          OMNIROUTE_USE_TURBOPACK: "0"
+          OMNIROUTE_BUILD_MEMORY_MB: "10240"
         run: |
           out="$RUNNER_TEMP/omniroute-dist"
-          NODE_OPTIONS=--max-old-space-size=12288 bash omniroute-fork/build.sh "$out"
+          bash omniroute-fork/build.sh "$out"
           ls -l "$out"
           (cd "$out" && sha256sum ./*.tgz)
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
