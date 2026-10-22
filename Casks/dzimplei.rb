@@ -1,6 +1,6 @@
 cask "dzimplei" do
-  version "0.7.93"
-  sha256 "2f63564d9fe340cefae88901c372da9c3c132910a1b17ec5f8f6cf8546b7f4be"
+  version "0.7.94"
+  sha256 "f0cb0b996996c040335f4980031a1cb45d72659ddeddd7c7507c9d489e5b161d"
 
   url "https://github.com/t-shark-9/dzimplei/releases/download/v#{version}/dzimplei-mac-arm64.dmg"
   name "dzimplei"
