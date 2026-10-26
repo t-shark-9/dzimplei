@@ -1,12 +1,12 @@
 {
-    "version": "0.7.97",
+    "version": "0.8.0",
     "description": "Workspaces, agents and Claude Code sessions in one app",
     "homepage": "https://dzimplei.com/",
     "license": "Proprietary",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/t-shark-9/dzimplei/releases/download/v0.7.97/dzimplei-windows-x64.exe#/dzimplei-setup.exe",
-            "hash": "f264c704c25338d69fe0bb1612d8549a83e592ffaa9d6a0cb58c05986f65abf4"
+            "url": "https://github.com/t-shark-9/dzimplei/releases/download/v0.8.0/dzimplei-windows-x64.exe#/dzimplei-setup.exe",
+            "hash": "1c63a71c5854a09d450feb0dce520c38a08e4d03c15021214f61033078de40c7"
         }
     },
     "installer": {
